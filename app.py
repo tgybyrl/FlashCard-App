@@ -1,32 +1,79 @@
 import json
 import os
 import base64
+import time
+import logging
 
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.exceptions import RequestEntityTooLarge
 
 load_dotenv()
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///flashcards.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4 MB upload limit
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-change-me")
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = _env_flag("SESSION_COOKIE_SECURE", False)
 
 ALLOWED_IMAGE_MIME_TYPES = {
     "image/jpeg",
     "image/png",
     "image/webp",
 }
+RATE_LIMIT_MAX_REQUESTS = int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "10"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+REQUEST_LOG_PREFIX = "[flashard]"
+
+# Simple in-memory limiter for basic abuse control in single-process dev usage.
+_submit_rate_limit_store: dict[str, list[float]] = {}
 
 db = SQLAlchemy(app)
+logging.basicConfig(level=logging.INFO)
 
 
 class Flashcard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.String(255), nullable=False)
     answer = db.Column(db.String(255), nullable=False)
+
+
+class AIServiceError(Exception):
+    pass
+
+
+def _detect_image_mime(image_bytes: bytes) -> str | None:
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if image_bytes.startswith(b"RIFF") and image_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def _is_rate_limited(client_ip: str) -> bool:
+    now = time.time()
+    recent = _submit_rate_limit_store.get(client_ip, [])
+    recent = [ts for ts in recent if (now - ts) <= RATE_LIMIT_WINDOW_SECONDS]
+    if len(recent) >= RATE_LIMIT_MAX_REQUESTS:
+        _submit_rate_limit_store[client_ip] = recent
+        return True
+    recent.append(now)
+    _submit_rate_limit_store[client_ip] = recent
+    return False
 
 
 def generate_flashcards_from_notes(notes: str, image_data_url: str | None = None):
@@ -57,7 +104,7 @@ def generate_flashcards_from_notes(notes: str, image_data_url: str | None = None
         model = base_model
 
     if not api_key:
-        raise RuntimeError("Missing AI_API_KEY environment variable")
+        raise AIServiceError("AI service is not configured yet.")
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -110,29 +157,42 @@ def generate_flashcards_from_notes(notes: str, image_data_url: str | None = None
     if not response.ok:
         provider_error = response.text[:500]
         if image_data_url and "content must be a string" in provider_error:
-            raise RuntimeError(
+            raise AIServiceError(
                 "Your current model does not support image inputs. "
                 "Set AI_VISION_MODEL to a vision-capable model."
             )
-        raise RuntimeError(
-            f"AI request failed ({response.status_code}) at {api_url}: {provider_error}"
+        app.logger.warning(
+            "%s AI request failed status=%s endpoint=%s detail=%s",
+            REQUEST_LOG_PREFIX,
+            response.status_code,
+            api_url,
+            provider_error,
         )
+        raise AIServiceError("AI provider request failed. Please try again.")
     data = response.json()
 
     content = data.get("choices", [{}])[0].get("message", {}).get("content")
     if not content:
-        raise RuntimeError("AI response did not contain message content")
+        raise AIServiceError("AI response was empty. Please try again.")
 
     if isinstance(content, list):
         content = "".join(
             part.get("text", "") for part in content if isinstance(part, dict)
         )
 
-    parsed = json.loads(content)
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError as exc:
+        app.logger.warning(
+            "%s Invalid JSON from AI: %s",
+            REQUEST_LOG_PREFIX,
+            exc,
+        )
+        raise AIServiceError("AI returned invalid format. Please try again.") from exc
     flashcards = parsed.get("flashcards") if isinstance(parsed, dict) else parsed
 
     if not isinstance(flashcards, list):
-        raise ValueError("AI response JSON must include a flashcards list")
+        raise AIServiceError("AI response did not contain flashcards.")
 
     validated = []
     for card in flashcards:
@@ -144,7 +204,7 @@ def generate_flashcards_from_notes(notes: str, image_data_url: str | None = None
             validated.append({"question": question, "answer": answer})
 
     if not validated:
-        raise ValueError("No valid flashcards found in AI response")
+        raise AIServiceError("No valid flashcards could be generated.")
 
     return validated
 
@@ -165,6 +225,19 @@ def submit():
     notes = request.form.get("notes", "").strip()
     uploaded_photo = request.files.get("photo")
     image_data_url = None
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
+
+    if _is_rate_limited(client_ip):
+        return (
+            render_template(
+                "index.html",
+                flashcards=[],
+                notes_text=notes,
+                error="Too many requests. Please wait a minute and try again.",
+                success=None,
+            ),
+            429,
+        )
 
     has_photo = bool(uploaded_photo and uploaded_photo.filename)
 
@@ -207,6 +280,19 @@ def submit():
                 400,
             )
 
+        actual_mime_type = _detect_image_mime(image_bytes)
+        if actual_mime_type != mime_type:
+            return (
+                render_template(
+                    "index.html",
+                    flashcards=[],
+                    notes_text=notes,
+                    error="Uploaded image content does not match file type.",
+                    success=None,
+                ),
+                400,
+            )
+
         encoded_image = base64.b64encode(image_bytes).decode("utf-8")
         image_data_url = f"data:{mime_type};base64,{encoded_image}"
 
@@ -231,21 +317,48 @@ def submit():
             error=None,
             success=f"Generated and saved {len(saved_cards)} flashcards.",
         )
-    except Exception as exc:
+    except AIServiceError as exc:
         db.session.rollback()
         return (
             render_template(
                 "index.html",
                 flashcards=[],
                 notes_text=notes,
-                error=f"Could not generate flashcards: {exc}",
+                error=str(exc),
+                success=None,
+            ),
+            502,
+        )
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("%s Unexpected submit error", REQUEST_LOG_PREFIX)
+        return (
+            render_template(
+                "index.html",
+                flashcards=[],
+                notes_text=notes,
+                error="Something went wrong while generating flashcards. Please try again.",
                 success=None,
             ),
             500,
         )
 
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_upload(_error):
+    return (
+        render_template(
+            "index.html",
+            flashcards=[],
+            notes_text="",
+            error="File is too large. Max upload size is 4MB.",
+            success=None,
+        ),
+        413,
+    )
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=_env_flag("FLASK_DEBUG", True))
