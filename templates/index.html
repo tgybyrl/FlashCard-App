@@ -1,63 +1,84 @@
 <!doctype html>
 <html lang="en">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Flashard | AI Study Flashcards</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
-        rel="stylesheet"
-      />
-      <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='styles.css') }}"
-      />
-    </head>
-    <body>
-      <div class="background-glow" aria-hidden="true"></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flashard | AI Study Flashcards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
+    <div class="background-glow" aria-hidden="true"></div>
 
-      <main class="app-shell">
-        <header class="topbar">
-          <div class="brand-wrap">
-            <span class="brand-badge">AI</span>
-            <div>
-              <p class="brand-name">Flashard</p>
-              <p class="brand-subtitle">Study smarter, not longer.</p>
-            </div>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <span class="brand-badge">AI</span>
+          <div>
+            <p class="brand-name">Flashard</p>
+            <p class="brand-subtitle">Study smarter, not longer.</p>
           </div>
-          <p class="status-pill">Ready to generate cards</p>
-        </header>
+        </div>
+        <p class="status-pill">Ready to generate cards</p>
+      </header>
 
-        <section class="hero">
-          <h1>Transform your study notes into instant flashcards.</h1>
-          <p>
-            Paste your notes below and let AI structure them into concise,
-            exam-ready cards.
-          </p>
-        </section>
+      <section class="hero">
+        <h1>Transform your study notes into instant flashcards.</h1>
+        <p>
+          Paste your notes below and let AI structure them into concise,
+          exam-ready cards.
+        </p>
+      </section>
 
-        <section class="panel">
-          <form action="/submit" method="post" class="notes-form">
-            <label for="notes">Paste your notes</label>
-            <textarea
-              id="notes"
-              name="notes"
-              placeholder="Paste lecture notes, textbook excerpts, or summary bullets..."
-              required
-            ></textarea>
+      <section class="panel">
+        <form action="/submit" method="post" class="notes-form">
+          <label for="notes">Paste your notes</label>
+          <textarea
+            id="notes"
+            name="notes"
+            placeholder="Paste lecture notes, textbook excerpts, or summary bullets..."
+            required
+          >
+{{ notes_text or "" }}</textarea
+          >
 
-            <div class="action-row">
-              <p class="helper-text">
-                Supports long-form text. Keep source material clear for best
-                results.
-              </p>
-              <button type="submit">Generate Flashcards</button>
-            </div>
-          </form>
-        </section>
-      </main>
-    </body>
-  </html>
+          {% if error %}
+          <p class="message error">{{ error }}</p>
+          {% endif %} {% if success %}
+          <p class="message success">{{ success }}</p>
+          {% endif %}
+
+          <div class="action-row">
+            <p class="helper-text">
+              Supports long-form text. Keep source material clear for best
+              results.
+            </p>
+            <button type="submit">Generate Flashcards</button>
+          </div>
+        </form>
+      </section>
+
+      {% if flashcards %}
+      <section class="panel">
+        <h2>Generated Flashcards</h2>
+        <div class="cards-grid">
+          {% for card in flashcards %}
+          <article class="card">
+            <h3>Q: {{ card.question }}</h3>
+            <p>A: {{ card.answer }}</p>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </main>
+  </body>
 </html>

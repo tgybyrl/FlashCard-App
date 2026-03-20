@@ -177,6 +177,48 @@ body {
   font-size: 0.9rem;
 }
 
+.message {
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.message.error {
+  background: #fff2f2;
+  color: #9f1d1d;
+  border: 1px solid #f5c2c2;
+}
+
+.message.success {
+  background: #eefaf0;
+  color: #1f6b34;
+  border: 1px solid #c6e7cf;
+}
+
+.cards-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #dce6f3;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.card h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 button[type="submit"] {
   border: 0;
   border-radius: 12px;

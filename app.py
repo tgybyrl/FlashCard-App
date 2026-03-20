@@ -2,8 +2,11 @@ import json
 import os
 
 import requests
+from dotenv import load_dotenv
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///flashcards.db"
@@ -51,7 +54,6 @@ def generate_flashcards_from_notes(notes: str):
     payload = {
         "model": model,
         "temperature": 0.2,
-        "response_format": {"type": "json_object"},
         "messages": [
             {
                 "role": "system",
@@ -71,8 +73,16 @@ def generate_flashcards_from_notes(notes: str):
         ],
     }
 
+    # Some OpenAI-compatible providers do not support response_format.
+    if os.getenv("AI_USE_RESPONSE_FORMAT", "false").lower() == "true":
+        payload["response_format"] = {"type": "json_object"}
+
     response = requests.post(api_url, headers=headers, json=payload, timeout=45)
-    response.raise_for_status()
+    if not response.ok:
+        provider_error = response.text[:500]
+        raise RuntimeError(
+            f"AI request failed ({response.status_code}) at {api_url}: {provider_error}"
+        )
     data = response.json()
 
     content = data.get("choices", [{}])[0].get("message", {}).get("content")
@@ -102,17 +112,64 @@ def generate_flashcards_from_notes(notes: str):
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        flashcards=[],
+        notes_text="",
+        error=None,
+        success=None,
+    )
 
 
 @app.post("/submit")
 def submit():
-    # Placeholder for future form processing logic.
-    form_data = request.form.to_dict()
-    return {
-        "message": "Form received",
-        "data": form_data,
-    }, 200
+    notes = request.form.get("notes", "").strip()
+
+    if not notes:
+        return (
+            render_template(
+                "index.html",
+                flashcards=[],
+                notes_text="",
+                error="Please paste some notes first.",
+                success=None,
+            ),
+            400,
+        )
+
+    try:
+        generated_cards = generate_flashcards_from_notes(notes)
+
+        saved_cards = []
+        for card in generated_cards:
+            flashcard = Flashcard(
+                question=card["question"],
+                answer=card["answer"],
+            )
+            db.session.add(flashcard)
+            saved_cards.append(flashcard)
+
+        db.session.commit()
+
+        return render_template(
+            "index.html",
+            flashcards=saved_cards,
+            notes_text=notes,
+            error=None,
+            success=f"Generated and saved {len(saved_cards)} flashcards.",
+        )
+    except Exception as exc:
+        db.session.rollback()
+        return (
+            render_template(
+                "index.html",
+                flashcards=[],
+                notes_text=notes,
+                error=f"Could not generate flashcards: {exc}",
+                success=None,
+            ),
+            500,
+        )
 
 
 if __name__ == "__main__":
