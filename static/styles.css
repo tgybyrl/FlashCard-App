@@ -18,6 +18,7 @@
 
 body {
   margin: 0;
+  padding: 2rem 0;
   font-family: "Manrope", "Segoe UI", sans-serif;
   color: var(--text-main);
   background: linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
@@ -42,7 +43,7 @@ body {
 
 .app-shell {
   width: min(980px, calc(100% - 2rem));
-  margin: 2rem auto;
+  margin: 0 auto;
   display: grid;
   gap: 1.5rem;
   animation: rise-in 500ms ease-out both;
