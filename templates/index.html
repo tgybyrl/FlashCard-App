@@ -1,24 +1,63 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AI Study Flashcards</title>
-  </head>
-  <body>
-    <h1>AI-Powered Study Flashcards</h1>
-    <p>Starter Flask app is running.</p>
-
-    <form action="/submit" method="post">
-      <label for="topic">Study topic</label>
-      <input
-        id="topic"
-        name="topic"
-        type="text"
-        placeholder="e.g., Biology"
-        required
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Flashard | AI Study Flashcards</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+        rel="stylesheet"
       />
-      <button type="submit">Generate</button>
-    </form>
-  </body>
+      <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='styles.css') }}"
+      />
+    </head>
+    <body>
+      <div class="background-glow" aria-hidden="true"></div>
+
+      <main class="app-shell">
+        <header class="topbar">
+          <div class="brand-wrap">
+            <span class="brand-badge">AI</span>
+            <div>
+              <p class="brand-name">Flashard</p>
+              <p class="brand-subtitle">Study smarter, not longer.</p>
+            </div>
+          </div>
+          <p class="status-pill">Ready to generate cards</p>
+        </header>
+
+        <section class="hero">
+          <h1>Transform your study notes into instant flashcards.</h1>
+          <p>
+            Paste your notes below and let AI structure them into concise,
+            exam-ready cards.
+          </p>
+        </section>
+
+        <section class="panel">
+          <form action="/submit" method="post" class="notes-form">
+            <label for="notes">Paste your notes</label>
+            <textarea
+              id="notes"
+              name="notes"
+              placeholder="Paste lecture notes, textbook excerpts, or summary bullets..."
+              required
+            ></textarea>
+
+            <div class="action-row">
+              <p class="helper-text">
+                Supports long-form text. Keep source material clear for best
+                results.
+              </p>
+              <button type="submit">Generate Flashcards</button>
+            </div>
+          </form>
+        </section>
+      </main>
+    </body>
+  </html>
 </html>
