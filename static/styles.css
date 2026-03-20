@@ -164,6 +164,27 @@ body {
   box-shadow: 0 0 0 4px rgba(15, 98, 254, 0.14);
 }
 
+.notes-form input[type="file"] {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #cdd9ea;
+  background: #fff;
+  color: var(--text-main);
+  padding: 0.55rem;
+}
+
+.notes-form input[type="file"]::file-selector-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  margin-right: 0.75rem;
+  background: #e8f0ff;
+  color: #0b4ad1;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .action-row {
   display: flex;
   justify-content: space-between;

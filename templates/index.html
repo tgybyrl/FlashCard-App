@@ -39,16 +39,23 @@
       </section>
 
       <section class="panel">
-        <form action="/submit" method="post" class="notes-form">
+        <form
+          action="/submit"
+          method="post"
+          class="notes-form"
+          enctype="multipart/form-data"
+        >
           <label for="notes">Paste your notes</label>
           <textarea
             id="notes"
             name="notes"
             placeholder="Paste lecture notes, textbook excerpts, or summary bullets..."
-            required
           >
 {{ notes_text or "" }}</textarea
           >
+
+          <label for="photo">Or upload a photo</label>
+          <input id="photo" name="photo" type="file" accept="image/*" />
 
           {% if error %}
           <p class="message error">{{ error }}</p>
@@ -58,8 +65,8 @@
 
           <div class="action-row">
             <p class="helper-text">
-              Supports long-form text. Keep source material clear for best
-              results.
+              You can submit notes, a photo, or both. Clear text and readable
+              images give best results.
             </p>
             <button type="submit">Generate Flashcards</button>
           </div>

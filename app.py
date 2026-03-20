@@ -1,5 +1,6 @@
 import json
 import os
+import base64
 
 import requests
 from dotenv import load_dotenv
@@ -11,6 +12,13 @@ load_dotenv()
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///flashcards.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4 MB upload limit
+
+ALLOWED_IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
 
 db = SQLAlchemy(app)
 
@@ -21,7 +29,7 @@ class Flashcard(db.Model):
     answer = db.Column(db.String(255), nullable=False)
 
 
-def generate_flashcards_from_notes(notes: str):
+def generate_flashcards_from_notes(notes: str, image_data_url: str | None = None):
     """Call an AI API and return a validated flashcard JSON list.
 
     Expected return format:
@@ -30,12 +38,23 @@ def generate_flashcards_from_notes(notes: str):
       ...
     ]
     """
-    if not notes or not notes.strip():
-        raise ValueError("notes must be a non-empty string")
+    if not notes.strip() and not image_data_url:
+        raise ValueError("Provide notes or an image")
 
     api_url = os.getenv("AI_API_URL", "https://api.openai.com/v1/chat/completions")
     api_key = os.getenv("AI_API_KEY")
-    model = os.getenv("AI_MODEL", "gpt-4.1-mini")
+    base_model = os.getenv("AI_MODEL", "gpt-4.1-mini")
+    vision_model = os.getenv("AI_VISION_MODEL", "").strip()
+
+    if image_data_url:
+        if vision_model:
+            model = vision_model
+        elif "api.groq.com" in api_url:
+            model = "meta-llama/llama-4-scout-17b-16e-instruct"
+        else:
+            model = base_model
+    else:
+        model = base_model
 
     if not api_key:
         raise RuntimeError("Missing AI_API_KEY environment variable")
@@ -51,6 +70,20 @@ def generate_flashcards_from_notes(notes: str):
         "question and answer."
     )
 
+    user_text = (
+        f"{prompt}\n\n"
+        "Return shape: {\"flashcards\": [{\"question\": \"...\", \"answer\": \"...\"}]}\n\n"
+        f"Notes:\n{notes or 'No text notes provided. Use the image content.'}"
+    )
+
+    if image_data_url:
+        user_content = [
+            {"type": "text", "text": user_text},
+            {"type": "image_url", "image_url": {"url": image_data_url}},
+        ]
+    else:
+        user_content = user_text
+
     payload = {
         "model": model,
         "temperature": 0.2,
@@ -64,11 +97,7 @@ def generate_flashcards_from_notes(notes: str):
             },
             {
                 "role": "user",
-                "content": (
-                    f"{prompt}\n\n"
-                    "Return shape: {\"flashcards\": [{\"question\": \"...\", \"answer\": \"...\"}]}\n\n"
-                    f"Notes:\n{notes}"
-                ),
+                "content": user_content,
             },
         ],
     }
@@ -80,6 +109,11 @@ def generate_flashcards_from_notes(notes: str):
     response = requests.post(api_url, headers=headers, json=payload, timeout=45)
     if not response.ok:
         provider_error = response.text[:500]
+        if image_data_url and "content must be a string" in provider_error:
+            raise RuntimeError(
+                "Your current model does not support image inputs. "
+                "Set AI_VISION_MODEL to a vision-capable model."
+            )
         raise RuntimeError(
             f"AI request failed ({response.status_code}) at {api_url}: {provider_error}"
         )
@@ -88,6 +122,11 @@ def generate_flashcards_from_notes(notes: str):
     content = data.get("choices", [{}])[0].get("message", {}).get("content")
     if not content:
         raise RuntimeError("AI response did not contain message content")
+
+    if isinstance(content, list):
+        content = "".join(
+            part.get("text", "") for part in content if isinstance(part, dict)
+        )
 
     parsed = json.loads(content)
     flashcards = parsed.get("flashcards") if isinstance(parsed, dict) else parsed
@@ -124,21 +163,55 @@ def index():
 @app.post("/submit")
 def submit():
     notes = request.form.get("notes", "").strip()
+    uploaded_photo = request.files.get("photo")
+    image_data_url = None
 
-    if not notes:
+    has_photo = bool(uploaded_photo and uploaded_photo.filename)
+
+    if not notes and not has_photo:
         return (
             render_template(
                 "index.html",
                 flashcards=[],
                 notes_text="",
-                error="Please paste some notes first.",
+                error="Please paste notes or upload an image first.",
                 success=None,
             ),
             400,
         )
 
+    if has_photo:
+        mime_type = uploaded_photo.mimetype
+        if mime_type not in ALLOWED_IMAGE_MIME_TYPES:
+            return (
+                render_template(
+                    "index.html",
+                    flashcards=[],
+                    notes_text=notes,
+                    error="Unsupported image type. Use JPG, PNG, or WEBP.",
+                    success=None,
+                ),
+                400,
+            )
+
+        image_bytes = uploaded_photo.read()
+        if not image_bytes:
+            return (
+                render_template(
+                    "index.html",
+                    flashcards=[],
+                    notes_text=notes,
+                    error="Uploaded image is empty.",
+                    success=None,
+                ),
+                400,
+            )
+
+        encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+        image_data_url = f"data:{mime_type};base64,{encoded_image}"
+
     try:
-        generated_cards = generate_flashcards_from_notes(notes)
+        generated_cards = generate_flashcards_from_notes(notes, image_data_url)
 
         saved_cards = []
         for card in generated_cards:
