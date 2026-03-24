@@ -68,14 +68,22 @@
               You can submit notes, a photo, or both. Clear text and readable
               images give best results.
             </p>
-            <button type="submit">Generate Flashcards</button>
+            <button type="submit" class="generate-button">Generate Flashcards</button>
           </div>
         </form>
       </section>
 
       {% if flashcards %}
       <section class="panel">
-        <h2>Generated Flashcards</h2>
+        <div class="panel-head">
+          <h2>Generated Flashcards</h2>
+          <form action="/regenerate" method="post" class="regenerate-form">
+            <input type="hidden" name="notes" value="{{ notes_text }}" />
+            <button type="submit" class="regenerate-button">
+              Regenerate Questions
+            </button>
+          </form>
+        </div>
         <div class="cards-grid">
           {% for card in flashcards %}
           <article class="card">

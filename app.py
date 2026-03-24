@@ -344,6 +344,89 @@ def submit():
         )
 
 
+@app.post("/regenerate")
+def regenerate():
+    notes = request.form.get("notes", "").strip()
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown")
+
+    if _is_rate_limited(client_ip):
+        existing_cards = Flashcard.query.order_by(Flashcard.id.asc()).all()
+        return (
+            render_template(
+                "index.html",
+                flashcards=existing_cards,
+                notes_text=notes,
+                error="Too many requests. Please wait a minute and try again.",
+                success=None,
+            ),
+            429,
+        )
+
+    if not notes:
+        existing_cards = Flashcard.query.order_by(Flashcard.id.asc()).all()
+        return (
+            render_template(
+                "index.html",
+                flashcards=existing_cards,
+                notes_text="",
+                error="Please paste notes before regenerating flashcards.",
+                success=None,
+            ),
+            400,
+        )
+
+    try:
+        generated_cards = generate_flashcards_from_notes(notes, None)
+
+        Flashcard.query.delete()
+
+        saved_cards = []
+        for card in generated_cards:
+            flashcard = Flashcard(
+                question=card["question"],
+                answer=card["answer"],
+            )
+            db.session.add(flashcard)
+            saved_cards.append(flashcard)
+
+        db.session.commit()
+
+        return render_template(
+            "index.html",
+            flashcards=saved_cards,
+            notes_text=notes,
+            error=None,
+            success=f"Regenerated and replaced with {len(saved_cards)} flashcards.",
+        )
+    except AIServiceError as exc:
+        db.session.rollback()
+        existing_cards = Flashcard.query.order_by(Flashcard.id.asc()).all()
+        return (
+            render_template(
+                "index.html",
+                flashcards=existing_cards,
+                notes_text=notes,
+                error=str(exc),
+                success=None,
+            ),
+            502,
+        )
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("%s Unexpected regenerate error", REQUEST_LOG_PREFIX)
+        existing_cards = Flashcard.query.order_by(Flashcard.id.asc()).all()
+        return (
+            render_template(
+                "index.html",
+                flashcards=existing_cards,
+                notes_text=notes,
+                error="Something went wrong while regenerating flashcards. Please try again.",
+                success=None,
+            ),
+            500,
+        )
+
+
 @app.errorhandler(RequestEntityTooLarge)
 def handle_large_upload(_error):
     return (

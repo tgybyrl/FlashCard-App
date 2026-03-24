@@ -218,6 +218,45 @@ body {
   border: 1px solid #c6e7cf;
 }
 
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.panel-head h2 {
+  margin: 0;
+}
+
+.regenerate-form {
+  margin: 0;
+}
+
+.regenerate-button {
+  border: 1px solid #b9cae8;
+  border-radius: 10px;
+  padding: 0.5rem 0.8rem;
+  font: inherit;
+  font-weight: 700;
+  color: #0b4ad1;
+  background: #edf3ff;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
+}
+
+.regenerate-button:hover {
+  transform: translateY(-1px);
+  background: #e2ecff;
+}
+
+.regenerate-button:active {
+  transform: translateY(0);
+}
+
 .cards-grid {
   display: grid;
   gap: 0.9rem;
@@ -294,7 +333,7 @@ body {
   border-radius: 8px;
 }
 
-button[type="submit"] {
+.generate-button {
   border: 0;
   border-radius: 12px;
   padding: 0.75rem 1.15rem;
@@ -302,19 +341,19 @@ button[type="submit"] {
   font-weight: 700;
   color: #fff;
   background: linear-gradient(145deg, var(--brand), var(--brand-dark));
-  box-shadow: 0 12px 22px rgba(15, 98, 254, 0.28);
+  box-shadow: 0 6px 8px rgb(15, 98, 254, 0.28);
   cursor: pointer;
   transition:
     transform 140ms ease,
     box-shadow 140ms ease;
 }
 
-button[type="submit"]:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 26px rgba(15, 98, 254, 0.3);
+.generate-button:hover {
+  transform: translateY(-0.8px);
+  box-shadow: 0 8px 10px rgba(15, 98, 254, 0.3);
 }
 
-button[type="submit"]:active {
+.generate-button:active {
   transform: translateY(0);
 }
 
@@ -333,6 +372,11 @@ button[type="submit"]:active {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .panel-head {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .action-row {
