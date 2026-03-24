@@ -10,6 +10,7 @@ A Python Flask backend that converts study notes and optional uploaded images in
 - SQLite persistence using Flask-SQLAlchemy
 - Basic security hardening:
   - Environment-based secrets and config
+  - CSRF protection on POST forms
   - File size/type validation for uploads
   - Generic user-safe error responses
   - Simple rate limiting on generation requests
@@ -19,6 +20,7 @@ A Python Flask backend that converts study notes and optional uploaded images in
 - Python 3
 - Flask
 - Flask-SQLAlchemy
+- Flask-WTF
 - SQLite
 - Requests
 - Python-Dotenv
@@ -41,7 +43,7 @@ python -m venv .venv
 
 ### 3. Install dependencies
 
-pip install flask flask-sqlalchemy requests python-dotenv
+pip install flask flask-sqlalchemy flask-wtf requests python-dotenv
 
 ### 4. Configure environment variables
 
@@ -94,6 +96,7 @@ Success response:
 Validation and error responses:
 
 - 400 Bad Request: invalid input (no notes/photo, invalid file type, empty file)
+- 400 Bad Request: invalid/missing CSRF token on protected form submissions
 - 413 Payload Too Large: upload exceeds configured size limit
 - 429 Too Many Requests: rate limit reached
 - 502 Bad Gateway: AI service returned a recoverable provider error
@@ -103,4 +106,5 @@ Validation and error responses:
 
 - Keep production secrets only in environment variables.
 - Set FLASK_DEBUG=false and SESSION_COOKIE_SECURE=true in production.
+- When FLASK_DEBUG=false, SECRET_KEY must be explicitly set and cannot use the default development placeholder value.
 - Rotate API keys immediately if they are ever exposed.

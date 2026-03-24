@@ -59,6 +59,7 @@
           class="notes-form"
           enctype="multipart/form-data"
         >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <label for="notes">Paste your notes</label>
           <textarea
             id="notes"
@@ -82,7 +83,11 @@
               You can submit notes, a photo, or both. Clear text and readable
               images give best results.
             </p>
-            <button type="submit" class="generate-button">
+            <button
+              type="submit"
+              class="generate-button"
+              data-loading-text="Generating..."
+            >
               Generate Flashcards
             </button>
           </div>
@@ -94,8 +99,13 @@
         <div class="panel-head">
           <h2>Generated Flashcards</h2>
           <form action="/regenerate" method="post" class="regenerate-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <input type="hidden" name="notes" value="{{ notes_text }}" />
-            <button type="submit" class="regenerate-button">
+            <button
+              type="submit"
+              class="regenerate-button"
+              data-loading-text="Regenerating..."
+            >
               Regenerate Questions
             </button>
           </form>
@@ -108,6 +118,8 @@
               type="button"
               class="answer-toggle is-blurred"
               aria-pressed="false"
+              aria-expanded="false"
+              aria-label="Reveal answer"
             >
               <span class="answer-label">A:</span>
               <span class="answer-content">{{ card.answer }}</span>
@@ -120,10 +132,41 @@
     </main>
 
     <script>
+      const setAnswerButtonState = (answerButton, isBlurred) => {
+        answerButton.setAttribute("aria-pressed", String(!isBlurred));
+        answerButton.setAttribute("aria-expanded", String(!isBlurred));
+        answerButton.setAttribute(
+          "aria-label",
+          isBlurred ? "Reveal answer" : "Hide answer"
+        );
+      };
+
       document.querySelectorAll(".answer-toggle").forEach((answerButton) => {
+        setAnswerButtonState(
+          answerButton,
+          answerButton.classList.contains("is-blurred")
+        );
         answerButton.addEventListener("click", () => {
           const isBlurred = answerButton.classList.toggle("is-blurred");
-          answerButton.setAttribute("aria-pressed", String(!isBlurred));
+          setAnswerButtonState(answerButton, isBlurred);
+        });
+      });
+
+      document.querySelectorAll("form").forEach((form) => {
+        form.addEventListener("submit", () => {
+          const submitButton = form.querySelector('button[type="submit"]');
+          if (!submitButton || submitButton.disabled) {
+            return;
+          }
+
+          submitButton.dataset.originalText = submitButton.textContent.trim();
+          submitButton.disabled = true;
+          submitButton.setAttribute("aria-busy", "true");
+
+          const loadingText = submitButton.dataset.loadingText;
+          if (loadingText) {
+            submitButton.textContent = loadingText;
+          }
         });
       });
     </script>

@@ -7,6 +7,7 @@ import logging
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import RequestEntityTooLarge
 
@@ -20,10 +21,28 @@ def _env_flag(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 app = Flask(__name__)
+DEBUG_MODE = _env_flag("FLASK_DEBUG", True)
+secret_key = os.getenv("SECRET_KEY", "").strip()
+if not secret_key:
+    if DEBUG_MODE:
+        secret_key = "dev-change-me"
+        logging.warning(
+            "[flashard] SECRET_KEY is not set. Using development fallback key.",
+        )
+    else:
+        raise RuntimeError(
+            "SECRET_KEY must be set when FLASK_DEBUG is false. "
+            "Set a long random SECRET_KEY in your environment."
+        )
+elif not DEBUG_MODE and secret_key == "dev-change-me":
+    raise RuntimeError(
+        "SECRET_KEY cannot use the default development value when FLASK_DEBUG is false."
+    )
+
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///flashcards.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024  # 4 MB upload limit
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-change-me")
+app.config["SECRET_KEY"] = secret_key
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = _env_flag("SESSION_COOKIE_SECURE", False)
@@ -41,6 +60,7 @@ REQUEST_LOG_PREFIX = "[flashard]"
 _submit_rate_limit_store: dict[str, list[float]] = {}
 
 db = SQLAlchemy(app)
+csrf = CSRFProtect(app)
 logging.basicConfig(level=logging.INFO)
 
 
@@ -441,7 +461,22 @@ def handle_large_upload(_error):
     )
 
 
+@app.errorhandler(CSRFError)
+def handle_csrf_error(_error):
+    notes = request.form.get("notes", "").strip()
+    return (
+        render_template(
+            "index.html",
+            flashcards=[],
+            notes_text=notes,
+            error="Your session expired or the form is invalid. Please refresh and try again.",
+            success=None,
+        ),
+        400,
+    )
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=_env_flag("FLASK_DEBUG", True))
+    app.run(debug=DEBUG_MODE)
