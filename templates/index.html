@@ -80,12 +80,28 @@
           {% for card in flashcards %}
           <article class="card">
             <h3>Q: {{ card.question }}</h3>
-            <p>A: {{ card.answer }}</p>
+            <button
+              type="button"
+              class="answer-toggle is-blurred"
+              aria-pressed="false"
+            >
+              <span class="answer-label">A:</span>
+              <span class="answer-content">{{ card.answer }}</span>
+            </button>
           </article>
           {% endfor %}
         </div>
       </section>
       {% endif %}
     </main>
+
+    <script>
+      document.querySelectorAll(".answer-toggle").forEach((answerButton) => {
+        answerButton.addEventListener("click", () => {
+          const isBlurred = answerButton.classList.toggle("is-blurred");
+          answerButton.setAttribute("aria-pressed", String(!isBlurred));
+        });
+      });
+    </script>
   </body>
 </html>

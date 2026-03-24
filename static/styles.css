@@ -241,6 +241,59 @@ body {
   color: var(--text-muted);
 }
 
+.answer-toggle {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--text-muted);
+  font: inherit;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.answer-label {
+  color: var(--text-main);
+  font-weight: 700;
+  margin-right: 0.2rem;
+}
+
+.answer-content {
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease;
+}
+
+.answer-toggle.is-blurred .answer-content {
+  filter: blur(5px);
+  user-select: none;
+}
+
+.answer-toggle.is-blurred::after {
+  content: "Click to reveal";
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #0b4ad1;
+}
+
+.answer-toggle:not(.is-blurred)::after {
+  content: "Click to hide";
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.answer-toggle:focus-visible {
+  outline: 2px solid #5f97ff;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 button[type="submit"] {
   border: 0;
   border-radius: 12px;
