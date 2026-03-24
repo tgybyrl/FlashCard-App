@@ -261,6 +261,18 @@ def submit():
 
     has_photo = bool(uploaded_photo and uploaded_photo.filename)
 
+    if notes and has_photo:
+        return (
+            render_template(
+                "index.html",
+                flashcards=[],
+                notes_text=notes,
+                error="Please choose only one input method: paste notes or upload a photo.",
+                success=None,
+            ),
+            400,
+        )
+
     if not notes and not has_photo:
         return (
             render_template(

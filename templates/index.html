@@ -80,8 +80,7 @@
 
           <div class="action-row">
             <p class="helper-text">
-              You can submit notes, a photo, or both. Clear text and readable
-              images give best results.
+              Choose only one method per request: paste notes or upload a photo.
             </p>
             <button
               type="submit"
@@ -137,14 +136,14 @@
         answerButton.setAttribute("aria-expanded", String(!isBlurred));
         answerButton.setAttribute(
           "aria-label",
-          isBlurred ? "Reveal answer" : "Hide answer"
+          isBlurred ? "Reveal answer" : "Hide answer",
         );
       };
 
       document.querySelectorAll(".answer-toggle").forEach((answerButton) => {
         setAnswerButtonState(
           answerButton,
-          answerButton.classList.contains("is-blurred")
+          answerButton.classList.contains("is-blurred"),
         );
         answerButton.addEventListener("click", () => {
           const isBlurred = answerButton.classList.toggle("is-blurred");
