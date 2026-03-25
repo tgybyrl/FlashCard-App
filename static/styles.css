@@ -230,6 +230,64 @@ body {
   margin: 0;
 }
 
+.panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.panel-visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #b9cae8;
+  border-radius: 10px;
+  padding: 0;
+  color: #0b4ad1;
+  background: #edf3ff;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease;
+}
+
+.panel-visibility-toggle:hover {
+  transform: translateY(-1px);
+  background: #e2ecff;
+}
+
+.panel-visibility-toggle:active {
+  transform: translateY(0);
+}
+
+.panel-visibility-toggle:focus-visible {
+  outline: 2px solid #5f97ff;
+  outline-offset: 2px;
+}
+
+.panel-visibility-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.panel-visibility-toggle .icon-eye-open {
+  display: none;
+}
+
+.panel-visibility-toggle .icon-eye-closed {
+  display: block;
+}
+
+.panel-visibility-toggle.is-all-visible .icon-eye-open {
+  display: block;
+}
+
+.panel-visibility-toggle.is-all-visible .icon-eye-closed {
+  display: none;
+}
+
 .regenerate-form {
   margin: 0;
 }
@@ -398,6 +456,22 @@ body {
   .panel-head {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .panel-controls {
+    width: 100%;
+  }
+
+  .panel-visibility-toggle {
+    flex: 0 0 38px;
+  }
+
+  .regenerate-form {
+    flex: 1;
+  }
+
+  .regenerate-button {
+    width: 100%;
   }
 
   .action-row {
