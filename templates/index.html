@@ -87,7 +87,8 @@
               class="generate-button"
               data-loading-text="Generating..."
             >
-              Generate Flashcards
+              <span class="btn-text">Generate Flashcards</span>
+              <span class="btn-spinner" aria-hidden="true"></span>
             </button>
           </div>
         </form>
@@ -299,13 +300,14 @@
           const submitButton = form.querySelector('button[type="submit"]');
           if (!submitButton || submitButton.disabled) return;
 
-          submitButton.dataset.originalText = submitButton.textContent.trim();
           submitButton.disabled = true;
           submitButton.setAttribute("aria-busy", "true");
+          submitButton.classList.add("is-loading");
 
+          const textEl = submitButton.querySelector(".btn-text");
           const loadingText = submitButton.dataset.loadingText;
-          if (loadingText) {
-            submitButton.textContent = loadingText;
+          if (textEl && loadingText) {
+            textEl.textContent = loadingText;
           }
         });
       });
