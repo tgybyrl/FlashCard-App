@@ -212,22 +212,28 @@
         </div>
         <div class="cards-grid">
           {% for card in flashcards %}
-          <article class="card">
-            <div class="card-question">
-              <span class="q-badge">Q</span>
-              <h3>{{ card.question }}</h3>
-            </div>
-            <div class="card-answer">
-              <button
-                type="button"
-                class="answer-toggle is-blurred"
-                aria-pressed="false"
-                aria-expanded="false"
-                aria-label="Reveal answer"
-              >
-                <span class="answer-label">A:</span>
-                <span class="answer-content">{{ card.answer }}</span>
-              </button>
+          <article
+            class="card"
+            role="button"
+            tabindex="0"
+            aria-pressed="false"
+            aria-label="Flashcard: {{ card.question }}. Click to flip."
+          >
+            <div class="card-inner">
+              <div class="card-front">
+                <div class="card-question">
+                  <span class="q-badge">Q</span>
+                  <h3>{{ card.question }}</h3>
+                </div>
+                <p class="flip-hint">Click to reveal answer</p>
+              </div>
+              <div class="card-back">
+                <div class="card-question">
+                  <span class="q-badge a-badge">A</span>
+                  <p>{{ card.answer }}</p>
+                </div>
+                <p class="flip-hint">Click to flip back</p>
+              </div>
             </div>
           </article>
           {% endfor %}
@@ -237,80 +243,61 @@
     </main>
 
     <script>
-      const setAnswerButtonState = (answerButton, isBlurred) => {
-        answerButton.setAttribute("aria-pressed", String(!isBlurred));
-        answerButton.setAttribute("aria-expanded", String(!isBlurred));
-        answerButton.setAttribute(
-          "aria-label",
-          isBlurred ? "Reveal answer" : "Hide answer",
-        );
-      };
-
-      const answerButtons = Array.from(
-        document.querySelectorAll(".answer-toggle"),
-      );
+      const cards = Array.from(document.querySelectorAll(".card"));
       const panelVisibilityToggle = document.querySelector(
         ".panel-visibility-toggle",
       );
 
-      const setPanelVisibilityState = (allRevealed) => {
-        if (!panelVisibilityToggle) {
-          return;
-        }
+      const setCardFlipped = (card, flipped) => {
+        card.classList.toggle("flipped", flipped);
+        card.setAttribute("aria-pressed", String(flipped));
+        card.setAttribute(
+          "aria-label",
+          flipped
+            ? `Answer shown. Click to flip back.`
+            : `Flashcard. Click to reveal answer.`,
+        );
+      };
 
-        panelVisibilityToggle.classList.toggle("is-all-visible", allRevealed);
-        panelVisibilityToggle.setAttribute("aria-pressed", String(allRevealed));
-
-        const label = allRevealed ? "Blur all answers" : "Reveal all answers";
+      const syncPanelVisibilityState = () => {
+        if (!panelVisibilityToggle || cards.length === 0) return;
+        const allFlipped = cards.every((c) => c.classList.contains("flipped"));
+        panelVisibilityToggle.classList.toggle("is-all-visible", allFlipped);
+        panelVisibilityToggle.setAttribute("aria-pressed", String(allFlipped));
+        const label = allFlipped ? "Flip all back" : "Reveal all answers";
         panelVisibilityToggle.setAttribute("aria-label", label);
         panelVisibilityToggle.setAttribute("title", label);
       };
 
-      const syncPanelVisibilityState = () => {
-        if (!panelVisibilityToggle || answerButtons.length === 0) {
-          return;
-        }
-
-        const allRevealed = answerButtons.every(
-          (answerButton) => !answerButton.classList.contains("is-blurred"),
-        );
-        setPanelVisibilityState(allRevealed);
-      };
-
-      answerButtons.forEach((answerButton) => {
-        setAnswerButtonState(
-          answerButton,
-          answerButton.classList.contains("is-blurred"),
-        );
-        answerButton.addEventListener("click", () => {
-          const isBlurred = answerButton.classList.toggle("is-blurred");
-          setAnswerButtonState(answerButton, isBlurred);
+      cards.forEach((card) => {
+        card.addEventListener("click", () => {
+          const flipped = !card.classList.contains("flipped");
+          setCardFlipped(card, flipped);
           syncPanelVisibilityState();
+        });
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            card.click();
+          }
         });
       });
 
-      if (panelVisibilityToggle && answerButtons.length > 0) {
+      if (panelVisibilityToggle && cards.length > 0) {
         syncPanelVisibilityState();
         panelVisibilityToggle.addEventListener("click", () => {
-          const shouldRevealAll = answerButtons.some((answerButton) =>
-            answerButton.classList.contains("is-blurred"),
+          const shouldFlipAll = cards.some(
+            (c) => !c.classList.contains("flipped"),
           );
-
-          answerButtons.forEach((answerButton) => {
-            answerButton.classList.toggle("is-blurred", !shouldRevealAll);
-            setAnswerButtonState(answerButton, !shouldRevealAll);
-          });
-
-          setPanelVisibilityState(shouldRevealAll);
+          cards.forEach((card) => setCardFlipped(card, shouldFlipAll));
+          syncPanelVisibilityState();
         });
       }
 
       document.querySelectorAll("form").forEach((form) => {
         form.addEventListener("submit", () => {
           const submitButton = form.querySelector('button[type="submit"]');
-          if (!submitButton || submitButton.disabled) {
-            return;
-          }
+          if (!submitButton || submitButton.disabled) return;
 
           submitButton.dataset.originalText = submitButton.textContent.trim();
           submitButton.disabled = true;
