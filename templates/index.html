@@ -213,17 +213,22 @@
         <div class="cards-grid">
           {% for card in flashcards %}
           <article class="card">
-            <h3>Q: {{ card.question }}</h3>
-            <button
-              type="button"
-              class="answer-toggle is-blurred"
-              aria-pressed="false"
-              aria-expanded="false"
-              aria-label="Reveal answer"
-            >
-              <span class="answer-label">A:</span>
-              <span class="answer-content">{{ card.answer }}</span>
-            </button>
+            <div class="card-question">
+              <span class="q-badge">Q</span>
+              <h3>{{ card.question }}</h3>
+            </div>
+            <div class="card-answer">
+              <button
+                type="button"
+                class="answer-toggle is-blurred"
+                aria-pressed="false"
+                aria-expanded="false"
+                aria-label="Reveal answer"
+              >
+                <span class="answer-label">A:</span>
+                <span class="answer-content">{{ card.answer }}</span>
+              </button>
+            </div>
           </article>
           {% endfor %}
         </div>

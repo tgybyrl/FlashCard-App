@@ -334,13 +334,45 @@ body {
 .card {
   background: #ffffff;
   border: 1px solid #dce6f3;
+  border-top: 3px solid var(--brand);
   border-radius: 14px;
-  padding: 1rem;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.card h3 {
-  margin: 0 0 0.45rem;
+.card-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.q-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #e8f0ff;
+  color: var(--brand);
+  font-weight: 800;
+  font-size: 0.72rem;
+  margin-top: 0.15rem;
+}
+
+.card-question h3 {
+  margin: 0;
   font-size: 1rem;
+  line-height: 1.4;
+}
+
+.card-answer {
+  background: #f5f8ff;
+  border-radius: 10px;
+  padding: 0.75rem;
 }
 
 .card p {
