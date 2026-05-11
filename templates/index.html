@@ -227,21 +227,19 @@
             aria-pressed="false"
             aria-label="Flashcard: {{ card.question }}. Click to flip."
           >
-            <div class="card-inner">
-              <div class="card-front">
-                <div class="card-question">
-                  <span class="q-badge">Q</span>
-                  <h3>{{ card.question }}</h3>
-                </div>
-                <p class="flip-hint">Click to reveal answer</p>
+            <div class="card-face card-front">
+              <div class="card-question">
+                <span class="q-badge">Q</span>
+                <h3>{{ card.question }}</h3>
               </div>
-              <div class="card-back">
-                <div class="card-question">
-                  <span class="q-badge a-badge">A</span>
-                  <p>{{ card.answer }}</p>
-                </div>
-                <p class="flip-hint">Click to flip back</p>
+              <p class="flip-hint">Click to reveal answer</p>
+            </div>
+            <div class="card-face card-back" hidden>
+              <div class="card-question">
+                <span class="q-badge a-badge">A</span>
+                <p>{{ card.answer }}</p>
               </div>
+              <p class="flip-hint">Click to flip back</p>
             </div>
           </article>
           {% endfor %}
@@ -252,24 +250,32 @@
 
     <script>
       const cards = Array.from(document.querySelectorAll(".card"));
-      const panelVisibilityToggle = document.querySelector(
-        ".panel-visibility-toggle",
-      );
+      const panelVisibilityToggle = document.querySelector(".panel-visibility-toggle");
 
-      const setCardFlipped = (card, flipped) => {
-        card.classList.toggle("flipped", flipped);
-        card.setAttribute("aria-pressed", String(flipped));
-        card.setAttribute(
-          "aria-label",
-          flipped
-            ? `Answer shown. Click to flip back.`
-            : `Flashcard. Click to reveal answer.`,
-        );
+      const flipCard = (card, showAnswer) => {
+        const front = card.querySelector(".card-front");
+        const back  = card.querySelector(".card-back");
+        if (!front || !back) return;
+        if (front.hidden === showAnswer) return;
+
+        card.style.transition = "transform 0.15s ease-in";
+        card.classList.add("is-flipping");
+
+        setTimeout(() => {
+          front.hidden = showAnswer;
+          back.hidden  = !showAnswer;
+          card.setAttribute("aria-pressed", String(showAnswer));
+          card.style.transition = "transform 0.15s ease-out";
+          card.classList.remove("is-flipping");
+        }, 150);
       };
 
-      const syncPanelVisibilityState = () => {
+      const syncPanelState = () => {
         if (!panelVisibilityToggle || cards.length === 0) return;
-        const allFlipped = cards.every((c) => c.classList.contains("flipped"));
+        const allFlipped = cards.every((c) => {
+          const front = c.querySelector(".card-front");
+          return front && front.hidden;
+        });
         panelVisibilityToggle.classList.toggle("is-all-visible", allFlipped);
         panelVisibilityToggle.setAttribute("aria-pressed", String(allFlipped));
         const label = allFlipped ? "Flip all back" : "Reveal all answers";
@@ -279,9 +285,9 @@
 
       cards.forEach((card) => {
         card.addEventListener("click", () => {
-          const flipped = !card.classList.contains("flipped");
-          setCardFlipped(card, flipped);
-          syncPanelVisibilityState();
+          const front = card.querySelector(".card-front");
+          flipCard(card, front && !front.hidden);
+          setTimeout(syncPanelState, 160);
         });
         card.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -292,13 +298,14 @@
       });
 
       if (panelVisibilityToggle && cards.length > 0) {
-        syncPanelVisibilityState();
+        syncPanelState();
         panelVisibilityToggle.addEventListener("click", () => {
-          const shouldFlipAll = cards.some(
-            (c) => !c.classList.contains("flipped"),
-          );
-          cards.forEach((card) => setCardFlipped(card, shouldFlipAll));
-          syncPanelVisibilityState();
+          const shouldShowAnswer = cards.some((c) => {
+            const front = c.querySelector(".card-front");
+            return front && !front.hidden;
+          });
+          cards.forEach((c) => flipCard(c, shouldShowAnswer));
+          setTimeout(syncPanelState, 160);
         });
       }
 

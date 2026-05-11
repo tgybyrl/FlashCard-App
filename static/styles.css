@@ -386,9 +386,10 @@ body {
 }
 
 .card {
-  perspective: 900px;
   cursor: pointer;
+  border-radius: 14px;
   animation: rise-in 0.4s ease both;
+  transform-origin: center;
 }
 
 .card:nth-child(1)  { animation-delay: 0.00s; }
@@ -410,27 +411,17 @@ body {
   border-radius: 14px;
 }
 
-.card-inner {
-  display: grid;
-  transform-style: preserve-3d;
-  transition: transform 0.5s cubic-bezier(0.45, 0.05, 0.55, 0.95);
-  border-radius: 14px;
+.card.is-flipping {
+  transform: scaleX(0);
 }
 
-.card.flipped .card-inner {
-  transform: rotateY(180deg);
-}
-
-.card-front,
-.card-back {
-  grid-area: 1 / 1;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+.card-face {
   border-radius: 14px;
   padding: 1.4rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 0.85rem;
   border: 1px solid #dce6f3;
   min-height: 160px;
 }
@@ -443,7 +434,6 @@ body {
 .card-back {
   background: #f0f5ff;
   border-top: 3px solid #5ba4f5;
-  transform: rotateY(180deg);
 }
 
 .card-question {
