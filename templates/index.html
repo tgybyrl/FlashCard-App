@@ -258,15 +258,16 @@
         if (!front || !back) return;
         if (front.hidden === showAnswer) return;
 
-        card.style.transition = "transform 0.15s ease-in";
+        card.classList.remove("is-unflipping");
         card.classList.add("is-flipping");
 
         setTimeout(() => {
           front.hidden = showAnswer;
           back.hidden  = !showAnswer;
           card.setAttribute("aria-pressed", String(showAnswer));
-          card.style.transition = "transform 0.15s ease-out";
           card.classList.remove("is-flipping");
+          card.classList.add("is-unflipping");
+          setTimeout(() => card.classList.remove("is-unflipping"), 150);
         }, 150);
       };
 

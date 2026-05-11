@@ -390,6 +390,11 @@ body {
   border-radius: 14px;
   animation: rise-in 0.4s ease both;
   transform-origin: center;
+  transition: transform 0.15s ease-in;
+}
+
+.card.is-unflipping {
+  transition: transform 0.15s ease-out;
 }
 
 .card:nth-child(1)  { animation-delay: 0.00s; }
