@@ -386,15 +386,8 @@ body {
 }
 
 .card {
-  cursor: pointer;
   border-radius: 14px;
   animation: rise-in 0.4s ease both;
-  transform-origin: center;
-  transition: transform 0.15s ease-in;
-}
-
-.card.is-unflipping {
-  transition: transform 0.15s ease-out;
 }
 
 .card:nth-child(1)  { animation-delay: 0.00s; }
@@ -410,14 +403,29 @@ body {
 .card:nth-child(11) { animation-delay: 0.60s; }
 .card:nth-child(12) { animation-delay: 0.66s; }
 
-.card:focus-visible {
-  outline: 2px solid #5f97ff;
-  outline-offset: 3px;
-  border-radius: 14px;
+/* Hide the checkbox itself */
+.card-toggle {
+  display: none;
 }
 
-.card.is-flipping {
-  transform: scaleX(0);
+/* Back face hidden by default — two classes beats .card-face one class */
+.card-face.card-back {
+  display: none;
+}
+
+/* When checkbox is checked: hide front, show back */
+.card-toggle:checked ~ .card-front {
+  display: none;
+}
+
+.card-toggle:checked ~ .card-back {
+  display: flex;
+  animation: card-reveal 0.25s ease-out;
+}
+
+@keyframes card-reveal {
+  from { opacity: 0; transform: scaleX(0.85); }
+  to   { opacity: 1; transform: scaleX(1); }
 }
 
 .card-face {
@@ -429,9 +437,8 @@ body {
   gap: 0.85rem;
   border: 1px solid #dce6f3;
   min-height: 160px;
+  cursor: pointer;
 }
-
-.card-face[hidden] { display: none; }
 
 .card-front {
   background: #ffffff;

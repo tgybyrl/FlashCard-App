@@ -70,13 +70,40 @@
           >
 
           <label for="photo">Or upload a photo</label>
-          <label class="drop-zone" id="drop-zone" for="photo" aria-label="Upload image: drop file here or click to browse">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          <label
+            class="drop-zone"
+            id="drop-zone"
+            for="photo"
+            aria-label="Upload image: drop file here or click to browse"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="28"
+              height="28"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
             </svg>
-            <span class="drop-zone-text">Drop image here or <span class="drop-zone-link">click to browse</span></span>
+            <span class="drop-zone-text"
+              >Drop image here or
+              <span class="drop-zone-link">click to browse</span></span
+            >
             <span class="drop-zone-filename" aria-live="polite"></span>
-            <input id="photo" name="photo" type="file" accept="image/*" class="drop-zone-input" />
+            <input
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/*"
+              class="drop-zone-input"
+            />
           </label>
 
           {% if error %}
@@ -104,7 +131,10 @@
       {% if flashcards %}
       <section class="panel">
         <div class="panel-head">
-          <h2>Generated Flashcards <span class="card-count-badge">{{ flashcards|length }} cards</span></h2>
+          <h2>
+            Generated Flashcards
+            <span class="card-count-badge">{{ flashcards|length }} cards</span>
+          </h2>
           <div class="panel-controls">
             <button
               type="button"
@@ -220,27 +250,22 @@
         </div>
         <div class="cards-grid">
           {% for card in flashcards %}
-          <article
-            class="card"
-            role="button"
-            tabindex="0"
-            aria-pressed="false"
-            aria-label="Flashcard: {{ card.question }}. Click to flip."
-          >
-            <div class="card-face card-front">
+          <article class="card">
+            <input type="checkbox" id="card-{{ loop.index }}" class="card-toggle" />
+            <label for="card-{{ loop.index }}" class="card-face card-front">
               <div class="card-question">
                 <span class="q-badge">Q</span>
                 <h3>{{ card.question }}</h3>
               </div>
               <p class="flip-hint">Click to reveal answer</p>
-            </div>
-            <div class="card-face card-back" hidden>
+            </label>
+            <label for="card-{{ loop.index }}" class="card-face card-back">
               <div class="card-question">
                 <span class="q-badge a-badge">A</span>
                 <p>{{ card.answer }}</p>
               </div>
-              <p class="flip-hint">Click to flip back</p>
-            </div>
+              <p class="flip-hint">Click to hide</p>
+            </label>
           </article>
           {% endfor %}
         </div>
@@ -249,67 +274,30 @@
     </main>
 
     <script>
-      const cards = Array.from(document.querySelectorAll(".card"));
+      /* --- Reveal-all button --- */
       const panelVisibilityToggle = document.querySelector(".panel-visibility-toggle");
+      if (panelVisibilityToggle) {
+        const toggles = Array.from(document.querySelectorAll(".card-toggle"));
 
-      const flipCard = (card, showAnswer) => {
-        const front = card.querySelector(".card-front");
-        const back  = card.querySelector(".card-back");
-        if (!front || !back) return;
-        if (front.hidden === showAnswer) return;
+        const syncPanelState = () => {
+          const allChecked = toggles.length > 0 && toggles.every((t) => t.checked);
+          panelVisibilityToggle.classList.toggle("is-all-visible", allChecked);
+          panelVisibilityToggle.setAttribute("aria-pressed", String(allChecked));
+          const label = allChecked ? "Hide all answers" : "Reveal all answers";
+          panelVisibilityToggle.setAttribute("aria-label", label);
+          panelVisibilityToggle.setAttribute("title", label);
+        };
 
-        card.classList.remove("is-unflipping");
-        card.classList.add("is-flipping");
+        toggles.forEach((t) => t.addEventListener("change", syncPanelState));
 
-        setTimeout(() => {
-          front.hidden = showAnswer;
-          back.hidden  = !showAnswer;
-          card.setAttribute("aria-pressed", String(showAnswer));
-          card.classList.remove("is-flipping");
-          card.classList.add("is-unflipping");
-          setTimeout(() => card.classList.remove("is-unflipping"), 150);
-        }, 150);
-      };
-
-      const syncPanelState = () => {
-        if (!panelVisibilityToggle || cards.length === 0) return;
-        const allFlipped = cards.every((c) => {
-          const front = c.querySelector(".card-front");
-          return front && front.hidden;
-        });
-        panelVisibilityToggle.classList.toggle("is-all-visible", allFlipped);
-        panelVisibilityToggle.setAttribute("aria-pressed", String(allFlipped));
-        const label = allFlipped ? "Flip all back" : "Reveal all answers";
-        panelVisibilityToggle.setAttribute("aria-label", label);
-        panelVisibilityToggle.setAttribute("title", label);
-      };
-
-      cards.forEach((card) => {
-        card.addEventListener("click", () => {
-          const front = card.querySelector(".card-front");
-          flipCard(card, front && !front.hidden);
-          setTimeout(syncPanelState, 160);
-        });
-        card.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            card.click();
-          }
-        });
-      });
-
-      if (panelVisibilityToggle && cards.length > 0) {
-        syncPanelState();
         panelVisibilityToggle.addEventListener("click", () => {
-          const shouldShowAnswer = cards.some((c) => {
-            const front = c.querySelector(".card-front");
-            return front && !front.hidden;
-          });
-          cards.forEach((c) => flipCard(c, shouldShowAnswer));
-          setTimeout(syncPanelState, 160);
+          const shouldReveal = toggles.some((t) => !t.checked);
+          toggles.forEach((t) => (t.checked = shouldReveal));
+          syncPanelState();
         });
       }
 
+      /* --- Image upload drag-and-drop --- */
       const dropZone = document.getElementById("drop-zone");
       if (dropZone) {
         const fileInput = dropZone.querySelector(".drop-zone-input");
@@ -331,7 +319,9 @@
         });
 
         ["dragleave", "dragend"].forEach((evt) => {
-          dropZone.addEventListener(evt, () => dropZone.classList.remove("drag-over"));
+          dropZone.addEventListener(evt, () =>
+            dropZone.classList.remove("drag-over"),
+          );
         });
 
         dropZone.addEventListener("drop", (e) => {
