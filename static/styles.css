@@ -335,7 +335,21 @@ body {
   perspective: 900px;
   cursor: pointer;
   min-height: 180px;
+  animation: rise-in 0.4s ease both;
 }
+
+.card:nth-child(1)  { animation-delay: 0.00s; }
+.card:nth-child(2)  { animation-delay: 0.06s; }
+.card:nth-child(3)  { animation-delay: 0.12s; }
+.card:nth-child(4)  { animation-delay: 0.18s; }
+.card:nth-child(5)  { animation-delay: 0.24s; }
+.card:nth-child(6)  { animation-delay: 0.30s; }
+.card:nth-child(7)  { animation-delay: 0.36s; }
+.card:nth-child(8)  { animation-delay: 0.42s; }
+.card:nth-child(9)  { animation-delay: 0.48s; }
+.card:nth-child(10) { animation-delay: 0.54s; }
+.card:nth-child(11) { animation-delay: 0.60s; }
+.card:nth-child(12) { animation-delay: 0.66s; }
 
 .card:focus-visible {
   outline: 2px solid #5f97ff;
