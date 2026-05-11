@@ -426,6 +426,8 @@ body {
   min-height: 160px;
 }
 
+.card-face[hidden] { display: none; }
+
 .card-front {
   background: #ffffff;
   border-top: 3px solid var(--brand);
